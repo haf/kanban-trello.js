@@ -12,6 +12,8 @@ otherwise be marked red.
 
 [Install it now!](https://github.com/haf/kanban-trello.js/raw/master/kanban-trello.user.js)*
 
+You can check whether it's working on [this sample board](https://trello.com/b/a2soLtdk/showcasing-kanban).
+
 ## License
 
 MIT.
