@@ -1,7 +1,7 @@
 kanban-trello.js
 ================
 
-A Greasemonkey plugin that colours the columns of a trello board according to
+A [Greasemonkey](https://addons.mozilla.org/en-US/firefox/addon/greasemonkey/) plugin that colours the columns of a trello board according to
 the number of cards and the numbers in square brackets. [4-5] or [3] would both work.
 
 Writing [4-5] in a heading of a column means that the column should preferrably
