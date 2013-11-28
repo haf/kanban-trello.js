@@ -21,4 +21,4 @@ MIT.
 Henrik Feldt 2013
 
 
-* Requires that you have GreaseMonkey enabled; it will intercept the raw script and present you with a dialog to install it.
+\* Requires that you have GreaseMonkey enabled; it will intercept the raw script and present you with a dialog to install it.
