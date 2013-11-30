@@ -3,7 +3,7 @@
 // @namespace   ip.trello
 // @description A script that colours cards with too high or too low card limits red.
 // @include     https://trello.com/b/*
-// @version     1
+// @version     2
 // @grant       none
 // ==/UserScript==
 
@@ -18,25 +18,76 @@ let exec = function(fn) {
 }
 
 exec(function() {
+  var instant_interval = 0; // [ms]
+  var poll_interval = 5000; // [ms]
 
-  var repeatedly = function(f, timeout, args) {
-    var t = this;
-    f.apply(this, args);
-    setTimeout(function() {
-      f.apply(t, args);
-      repeatedly.call(t, f, timeout, args);
-    }, timeout);
-  };
-
-  var red_colour = '#FF8282',
-      gray_colour = '#E3E3E3',
+  var red_colour    = '#FF8282',
+      gray_colour   = '#E3E3E3',
       orange_colour = '#F9DAB8';
 
-  var update = function ($items) {
-    var rgs = ($items || $('#board .list')).
+  // Perform f(args) until f(args)=falsy.
+  // The this-binding of the call to the
+  // f: function to call, () -> boolish
+  // initial_wait: how long to wait before calling f again.
+  // period: how long to wait until calling f for the nth time.
+  // args: optional args
+  // returns: a Deferred that completes when f(args) returns false.
+  var repeat_while = function(f, initial_wait, period, args) {
+    var t = this;
+    var def_until = new jQuery.Deferred();
+    setTimeout(function() {
+      if (f.apply(t, args)) {
+        setTimeout(function() {
+          if (f.apply(t, args)) until.call(t, f, timeout, args);
+          else def_until.resolve();
+        }, period);
+      } else {
+        def_until.resolve();
+      }
+    }, initial_wait);
+    return def_until;
+  };
+
+  // see 'repeat_while' with a negated predicate/f
+  var repeat_until = function(f, initial_wait, period, args) {
+    return repeat_while.call(this,
+      function() !f.apply(this, arguments),
+      instant_interval, period, args);
+  };
+  var wait_for = repeat_until;
+
+  // Schedule a function to run forever, starting instantly.
+  // The this-binding of the call to forever will be flowed to f.
+  // f: the function to call.
+  // period: how often to call the function.
+  // args: optional arguments to f.
+  // returns: a promise that never completes.
+  var forever = function(f, initial_wait, period, args) {
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/call
+    return repeat_while.call(this,
+      function() {
+        f.apply(this, args);
+        return true;
+      },
+      initial_wait, period, args);
+  };
+
+  jQuery.fn.extend({
+    // function that takes the title of a list
+    list_title : function() {
+      return $(this).find("div[attr='name'] h2").text();
+    }
+  });
+
+  var lists = function() {
+    return $('#board .list:not(.add-list)');
+  }
+
+  var check = function($items) {
+    return $items.
       map(function() {
-        var title  = $(this).find("div[attr='name'] h2").text();
-        var actual = Number((/(\d+) cards/.exec($(this, '.num-cards').text()) || [0, 0])[1]);
+        var title  = $(this).list_title();
+        var actual = (/(\d+) cards/.exec($(this, '.num-cards').text()) || [0, 0])[1];
         var nums   = /\[(\d+)(?:-(\d+)){0,1}\]/.exec(title) || [-Infinity, 0, Infinity];
         return {
           "title"     : title,
@@ -51,8 +102,10 @@ exec(function() {
         else if (t.num_cards > t.max_lim) acc.red.push(t);
         else acc.green.push(t);
         return acc;
-      }, {red:[], green:[], orange: []});
-      
+      }, {red:[], green:[], orange:[]});
+  };
+
+  var update = function(rgs) {
     rgs.red.forEach(function(x) {
       console.info("Consider the amount of work in '" + x.title +
         "'. You have " + x.num_cards +
@@ -60,12 +113,10 @@ exec(function() {
       x.list.css("background", red_colour);
       x.list.find('.num-cards').css("color", "black").show();
     });
-
     rgs.green.forEach(function(x) {
       x.list.css("background", gray_colour);
       x.list.find('.num-cards').hide();
     });
-    
     rgs.orange.forEach(function(x) {
       console.info("Consider adding more work in '" + x.title +
         "' to improve throughput, you only have " + x.num_cards +
@@ -74,12 +125,32 @@ exec(function() {
     });
   };
 
-  var observer = new MutationObserver(function(mutations)
-    mutations.forEach(function(mutation)
-      update( $(mutation.target).closest('.list') ), 1)
-  );
+  var check_n_update = function($items) {
+    var $items = $items || lists();
+    console.debug('check_n_update called with ', $items);
+    update(check($items));
+  };
 
-  $("#board .list").each(function() observer.observe(this, {childList: true, subtree: true}));
+  var start_observing = function(lists, observer) {
+    lists.each(function() {
+      console.debug('observing list ', $(this).list_title());
+      observer.observe(this, { childList: true, subtree: true });
+    });
+  };
 
-  repeatedly(update, 5000);
+  // when the window is loaded;
+  $(function() {
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        var updated = $(mutation.target).closest('.list');
+        check_n_update(updated);
+      }, 1);
+    });
+
+    wait_for(function() lists().length > 0, instant_interval, poll_interval).
+      then(function() {
+        start_observing(lists(), observer);
+        var _ = forever(check_n_update, instant_interval, poll_interval);
+      });
+  });
 });
