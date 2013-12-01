@@ -26,7 +26,8 @@ exec(function() {
       orange_colour = '#F9DAB8';
 
   // Perform f(args) until f(args)=falsy.
-  // The this-binding of the call to the
+  // The this-binding of the call is bound to the function f.
+  // Basically a sliding scheduler function.
   // f: function to call, () -> boolish
   // initial_wait: how long to wait before calling f again.
   // period: how long to wait until calling f for the nth time.
@@ -36,14 +37,8 @@ exec(function() {
     var t = this;
     var def_until = new jQuery.Deferred();
     setTimeout(function() {
-      if (f.apply(t, args)) {
-        setTimeout(function() {
-          if (f.apply(t, args)) until.call(t, f, timeout, args);
-          else def_until.resolve();
-        }, period);
-      } else {
-        def_until.resolve();
-      }
+      if (f.apply(t, args)) repeat_while.call(t, f, period, period, args);
+      else def_until.resolve();
     }, initial_wait);
     return def_until;
   };
