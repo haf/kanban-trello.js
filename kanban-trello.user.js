@@ -141,7 +141,7 @@ exec(function() {
         };
       }).get().
       reduce(function(acc, t, i, arr) {
-        if (t.num_cards < t.min_lim) acc.orange.push(t);
+        if (t.num_cards < t.min_lim || t.num_cards == t.max_lim) acc.orange.push(t);
         else if (t.num_cards > t.max_lim) acc.red.push(t);
         else acc.green.push(t);
         return acc;
