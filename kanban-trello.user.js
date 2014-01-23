@@ -203,7 +203,8 @@ exec(function() {
         var ls = lists();
         start_observing(ls, observer);
         var _ = forever(check_n_update, instant_interval, poll_interval);
-        ls.find('.ui-sortable').bind('sortreceive', handle_receive);
+        // latest update to Trello broke this functionality
+        // ls.find('.ui-sortable').bind('sortreceive', handle_receive);
       });
   });
 });
