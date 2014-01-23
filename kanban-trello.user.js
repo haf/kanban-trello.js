@@ -3,7 +3,7 @@
 // @namespace   ip.trello
 // @description A script that colours cards with too high or too low card limits red.
 // @include     https://trello.com/b/*
-// @version     3
+// @version     4
 // @grant       none
 // ==/UserScript==
 
